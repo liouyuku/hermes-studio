@@ -1,4 +1,4 @@
-import { join } from 'path'
+import { join, resolve } from 'path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const originalWebUiHome = process.env.HERMES_WEB_UI_HOME
@@ -20,14 +20,16 @@ describe('media controller', () => {
   it('uses Hermes Web UI media directory as the default generated video output path', async () => {
     process.env.HERMES_WEB_UI_HOME = '/tmp/hermes-web-ui-test-home'
     const { defaultImageOutputPath, defaultMediaOutputPath } = await import('../../packages/server/src/controllers/hermes/media')
+    const home = resolve('/tmp/hermes-web-ui-test-home')
 
-    expect(defaultMediaOutputPath('req_123')).toBe(join('/tmp/hermes-web-ui-test-home', 'media', 'req_123.mp4'))
-    expect(defaultMediaOutputPath('bad/request:id')).toBe(join('/tmp/hermes-web-ui-test-home', 'media', 'bad_request_id.mp4'))
-    expect(defaultImageOutputPath('img_123')).toBe(join('/tmp/hermes-web-ui-test-home', 'media', 'img_123.png'))
-    expect(defaultImageOutputPath('bad/request:id', 1)).toBe(join('/tmp/hermes-web-ui-test-home', 'media', 'bad_request_id-2.png'))
+    expect(defaultMediaOutputPath('req_123')).toBe(join(home, 'media', 'req_123.mp4'))
+    expect(defaultMediaOutputPath('bad/request:id')).toBe(join(home, 'media', 'bad_request_id.mp4'))
+    expect(defaultImageOutputPath('img_123')).toBe(join(home, 'media', 'img_123.png'))
+    expect(defaultImageOutputPath('bad/request:id', 1)).toBe(join(home, 'media', 'bad_request_id-2.png'))
   })
 
   it('generates images through the requested configured custom provider', async () => {
+    process.env.HERMES_WEB_UI_HOME = '/tmp/hermes-web-ui-test-home'
     vi.stubEnv('AGNES_API_KEY', 'agnes-secret')
     vi.doMock('../../packages/server/src/services/hermes/hermes-profile', () => ({
       getActiveProfileName: () => 'default',
@@ -60,7 +62,7 @@ describe('media controller', () => {
             provider: 'agnes',
             mode: 'text',
             prompt: 'make an icon',
-            output_path: '/tmp/hermes-web-ui-agnes-image.png',
+            output_path: '/tmp/hermes-web-ui-test-home/media/agnes-image.png',
           },
         },
         get: vi.fn(() => ''),
@@ -93,6 +95,109 @@ describe('media controller', () => {
         model: 'gpt-image-2',
         prompt: 'make an icon',
       })
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  it('rejects image_path reads and output_path writes outside the Web UI home', async () => {
+    process.env.HERMES_WEB_UI_HOME = '/tmp/hermes-web-ui-test-home'
+    vi.stubEnv('AGNES_API_KEY', 'agnes-secret')
+    vi.doMock('../../packages/server/src/services/hermes/hermes-profile', () => ({
+      getActiveProfileName: () => 'default',
+      getProfileDir: () => '/tmp/hermes-web-ui-test-profile',
+      listProfileNamesFromDisk: () => ['default'],
+    }))
+    vi.doMock('../../packages/server/src/services/config-helpers', () => ({
+      readConfigYamlForProfile: vi.fn(async () => ({
+        custom_providers: [{
+          name: 'agnes',
+          base_url: 'https://agnes.example/v1',
+          api_key_env: 'AGNES_API_KEY',
+          model: 'agnes-image-2.1-flash',
+        }],
+      })),
+    }))
+    const fetchMock = vi.fn(async () => new Response(
+      'data: {"data":[{"b64_json":"aW1hZ2UtYnl0ZXM="}]}\n\n',
+      { status: 200, headers: { 'Content-Type': 'text/event-stream' } },
+    ))
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = fetchMock as any
+    try {
+      const { apiKeyImageGenerate } = await import('../../packages/server/src/controllers/hermes/media')
+      const ctx: any = {
+        state: { serverTokenAuth: true },
+        query: {},
+        request: {
+          body: {
+            provider: 'agnes',
+            mode: 'edit',
+            prompt: 'edit it',
+            image_path: '/etc/passwd',
+            output_path: '/tmp/hermes-web-ui-test-home/media/out.png',
+          },
+        },
+        get: vi.fn(() => ''),
+        status: 200,
+        body: undefined,
+      }
+
+      await apiKeyImageGenerate(ctx)
+
+      expect(ctx.status).toBe(403)
+      expect(ctx.body).toEqual({ error: 'Access denied', code: 'permission_denied' })
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  it('rejects output_path writes with a disallowed extension outside the Web UI home', async () => {
+    process.env.HERMES_WEB_UI_HOME = '/tmp/hermes-web-ui-test-home'
+    vi.stubEnv('AGNES_API_KEY', 'agnes-secret')
+    vi.doMock('../../packages/server/src/services/hermes/hermes-profile', () => ({
+      getActiveProfileName: () => 'default',
+      getProfileDir: () => '/tmp/hermes-web-ui-test-profile',
+      listProfileNamesFromDisk: () => ['default'],
+    }))
+    vi.doMock('../../packages/server/src/services/config-helpers', () => ({
+      readConfigYamlForProfile: vi.fn(async () => ({
+        custom_providers: [{
+          name: 'agnes',
+          base_url: 'https://agnes.example/v1',
+          api_key_env: 'AGNES_API_KEY',
+          model: 'agnes-image-2.1-flash',
+        }],
+      })),
+    }))
+    const fetchMock = vi.fn(async () => new Response(
+      'data: {"data":[{"b64_json":"aW1hZ2UtYnl0ZXM="}]}\n\n',
+      { status: 200, headers: { 'Content-Type': 'text/event-stream' } },
+    ))
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = fetchMock as any
+    try {
+      const { apiKeyImageGenerate } = await import('../../packages/server/src/controllers/hermes/media')
+      const ctx: any = {
+        state: { serverTokenAuth: true },
+        query: {},
+        request: {
+          body: {
+            provider: 'agnes',
+            mode: 'text',
+            prompt: 'make an icon',
+            output_path: '/tmp/hermes-web-ui-test-home/media/evil.sh',
+          },
+        },
+        get: vi.fn(() => ''),
+        status: 200,
+        body: undefined,
+      }
+
+      await apiKeyImageGenerate(ctx)
+
+      expect(ctx.status).toBe(400)
+      expect(ctx.body).toEqual({ error: 'Unsupported output extension', code: 'invalid_path' })
     } finally {
       globalThis.fetch = originalFetch
     }

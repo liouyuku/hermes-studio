@@ -463,7 +463,7 @@ export class ChatRunSocket {
       }
 
       let fullInstructions = data.instructions
-        ? `${getSystemPrompt(undefined, { source })}\n${data.instructions}`
+        ? `${getSystemPrompt(undefined, { source })}\n${data.instructions}`.trim()
         : getSystemPrompt(undefined, { source })
 
       await handleBridgeRun(

@@ -95,11 +95,19 @@ Return the result for this node clearly and concisely. Do not describe the workf
 `;
 
 /**
- * Get the complete system prompt with format guidelines
+ * Get a complete system prompt from the allowed injection blocks.
+ *
+ * Injected blocks are explicit and audit-friendly: by default nothing is added
+ * beyond any custom prompt (bare mode). Callers opt into the blocks they need
+ * (MCP usage guidance, output-format rules, workflow-node context).
  * @param customPrompt - Optional custom system prompt to prepend
+ * @param options - source context and the list of injection blocks to append
  * @returns Complete system prompt string
  */
-export function getSystemPrompt(customPrompt?: string, options?: { source?: string | null }): string {
+export function buildStudioSystemPrompt(
+  customPrompt?: string,
+  options?: { source?: string | null; inject?: StudioPromptInjection[] },
+): string {
   const parts: string[] = [];
 
   if (customPrompt) {
@@ -110,8 +118,33 @@ export function getSystemPrompt(customPrompt?: string, options?: { source?: stri
     parts.push(WORKFLOW_NODE_SYSTEM_CONTEXT.trim());
   }
 
-  parts.push(HERMES_MCP_USAGE_GUIDELINES.join('\n'));
-  parts.push(AI_OUTPUT_FORMAT_GUIDELINES);
+  for (const block of options?.inject ?? []) {
+    if (block.kind === 'mcp-usage') {
+      parts.push(HERMES_MCP_USAGE_GUIDELINES.join('\n'));
+    } else if (block.kind === 'output-format') {
+      parts.push(AI_OUTPUT_FORMAT_GUIDELINES);
+    } else if (block.kind === 'workflow-node') {
+      parts.push(WORKFLOW_NODE_SYSTEM_CONTEXT.trim());
+    }
+  }
 
   return parts.join('\n\n');
 }
+
+/**
+ * Backward-compatible wrapper. Defaults to bare mode (no managed injections).
+ * Use `buildStudioSystemPrompt` with explicit `inject` blocks when guidance is needed.
+ */
+export function getSystemPrompt(customPrompt?: string, options?: { source?: string | null }): string {
+  return buildStudioSystemPrompt(customPrompt, {
+    source: options?.source,
+    inject: DEFAULT_INJECTION_BLOCKS,
+  });
+}
+
+export type StudioPromptInjection =
+  | { kind: 'mcp-usage' }
+  | { kind: 'output-format'; lang?: 'zh' | 'en' }
+  | { kind: 'workflow-node' };
+
+const DEFAULT_INJECTION_BLOCKS: StudioPromptInjection[] = [];

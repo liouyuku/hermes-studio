@@ -1,7 +1,8 @@
 import type { Context } from 'koa'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
-import { dirname, extname, isAbsolute, join, resolve } from 'path'
+import { dirname, extname, isAbsolute, join, normalize, resolve } from 'path'
 import { getActiveProfileName, getProfileDir, listProfileNamesFromDisk } from '../../services/hermes/hermes-profile'
+import { isPathWithin } from '../../services/hermes/hermes-path'
 import { config } from '../../config'
 import { readConfigYamlForProfile } from '../../services/config-helpers'
 import { getCompatibleCustomProviders } from '../../services/hermes/custom-providers-compat'
@@ -15,6 +16,29 @@ const APIKEY_IMAGE_TO_IMAGE_MODEL = 'gpt-5.4-mini'
 const MAX_IMAGE_BYTES = 25 * 1024 * 1024
 const DEFAULT_POLL_INTERVAL_MS = 5000
 const DEFAULT_TIMEOUT_MS = 10 * 60 * 1000
+const OUTPUT_EXT_WHITELIST = new Set(['.png', '.jpg', '.jpeg', '.webp', '.mp4', '.mov'])
+
+function assertWithinHouseRoot(p: string): string {
+  const abs = resolve(p)
+  if (!isPathWithin(normalize(abs), normalize(config.appHome))) {
+    const err: any = new Error('Access denied')
+    err.status = 403
+    err.code = 'permission_denied'
+    throw err
+  }
+  return abs
+}
+
+function assertSafeOutputPath(p: string): string {
+  const abs = assertWithinHouseRoot(p)
+  if (!OUTPUT_EXT_WHITELIST.has(extname(abs).toLowerCase())) {
+    const err: any = new Error('Unsupported output extension')
+    err.status = 400
+    err.code = 'invalid_path'
+    throw err
+  }
+  return abs
+}
 
 type AuthJson = {
   providers?: Record<string, any>
@@ -147,7 +171,7 @@ function mimeFromMagic(buffer: Buffer): string | null {
 }
 
 function imagePathToDataUri(imagePath: string): string {
-  const resolvedPath = isAbsolute(imagePath) ? imagePath : resolve(process.cwd(), imagePath)
+  const resolvedPath = assertWithinHouseRoot(isAbsolute(imagePath) ? imagePath : resolve(process.cwd(), imagePath))
   const image = readFileSync(resolvedPath)
   if (image.length > MAX_IMAGE_BYTES) {
     const err: any = new Error(`image is too large (max ${MAX_IMAGE_BYTES} bytes)`)
@@ -185,7 +209,8 @@ function normalizeImageInput(body: any): string {
     err.status = 400
     throw err
   }
-  if (!existsSync(isAbsolute(imagePath) ? imagePath : resolve(process.cwd(), imagePath))) {
+  const checkedPath = assertWithinHouseRoot(isAbsolute(imagePath) ? imagePath : resolve(process.cwd(), imagePath))
+  if (!existsSync(checkedPath)) {
     const err: any = new Error('image_path does not exist')
     err.status = 404
     throw err
@@ -254,7 +279,7 @@ async function normalizeImageFile(body: any): Promise<{ buffer: Buffer; mime: st
     err.status = 400
     throw err
   }
-  const resolvedPath = isAbsolute(imagePath) ? imagePath : resolve(process.cwd(), imagePath)
+  const resolvedPath = assertWithinHouseRoot(isAbsolute(imagePath) ? imagePath : resolve(process.cwd(), imagePath))
   if (!existsSync(resolvedPath)) {
     const err: any = new Error('image_path does not exist')
     err.status = 404
@@ -469,9 +494,10 @@ function saveGeneratedImages(images: string[], requestedOutputPath?: string): st
       : requestedOutputPath
         ? requestedOutputPath.replace(/(\.[^.\\/]+)?$/, `${index > 0 ? `-${index + 1}` : ''}$1`)
         : defaultImageOutputPath(`image_${Date.now()}`, index)
-    mkdirSync(dirname(outputPath), { recursive: true })
-    writeFileSync(outputPath, Buffer.from(image, 'base64'))
-    return outputPath
+    const safePath = assertSafeOutputPath(outputPath)
+    mkdirSync(dirname(safePath), { recursive: true })
+    writeFileSync(safePath, Buffer.from(image, 'base64'))
+    return safePath
   })
 }
 
@@ -546,8 +572,9 @@ async function downloadVideo(url: string, outputPath: string): Promise<void> {
   if (!res.ok) throw new Error(`failed to download generated video: ${res.status} ${res.statusText}`)
   const arrayBuffer = await res.arrayBuffer()
   const buffer = Buffer.from(arrayBuffer)
-  mkdirSync(dirname(outputPath), { recursive: true })
-  writeFileSync(outputPath, buffer)
+  const safePath = assertSafeOutputPath(outputPath)
+  mkdirSync(dirname(safePath), { recursive: true })
+  writeFileSync(safePath, buffer)
 }
 
 export async function grokImageToVideo(ctx: Context) {

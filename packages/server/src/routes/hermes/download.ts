@@ -1,5 +1,5 @@
 import Router from '@koa/router'
-import { basename, extname, isAbsolute } from 'path'
+import { basename, extname, isAbsolute, normalize } from 'path'
 import {
   createFileProvider,
   localProvider,
@@ -7,9 +7,23 @@ import {
   validatePath,
   resolveHermesPath,
 } from '../../services/hermes/file-provider'
-import { getActiveProfileName } from '../../services/hermes/hermes-profile'
+import { getActiveProfileName, getProfileDir } from '../../services/hermes/hermes-profile'
+import { isPathWithin } from '../../services/hermes/hermes-path'
+import { requireSuperAdmin } from '../../middleware/user-auth'
+import { config } from '../../config'
 
 export const downloadRoutes = new Router()
+
+function assertWithinAllowedRoots(abs: string, profile: string): void {
+  const roots = [getProfileDir(profile), config.uploadDir].map(root => normalize(root))
+  const ok = roots.some(root => isPathWithin(normalize(abs), root))
+  if (!ok) {
+    const err: any = new Error('Access denied')
+    err.status = 403
+    err.code = 'permission_denied'
+    throw err
+  }
+}
 
 // MIME type mapping for common extensions
 const MIME_MAP: Record<string, string> = {
@@ -67,7 +81,7 @@ function requestedProfile(ctx: any): string {
   return ctx.state?.profile?.name || getActiveProfileName() || 'default'
 }
 
-downloadRoutes.get('/api/hermes/download', async (ctx) => {
+downloadRoutes.get('/api/hermes/download', requireSuperAdmin, async (ctx) => {
   const filePath = ctx.query.path as string | undefined
   const fileName = ctx.query.name as string | undefined
 
@@ -82,6 +96,7 @@ downloadRoutes.get('/api/hermes/download', async (ctx) => {
     // Validate the path first
     // Support both absolute and relative paths
     const validPath = isAbsolute(filePath) ? validatePath(filePath) : resolveHermesPath(filePath, profile)
+    assertWithinAllowedRoots(validPath, profile)
 
     // Choose provider: always use local for upload directory files
     let data: Buffer
@@ -107,6 +122,7 @@ downloadRoutes.get('/api/hermes/download', async (ctx) => {
     const statusMap: Record<string, number> = {
       missing_path: 400,
       invalid_path: 400,
+      permission_denied: 403,
       not_found: 404,
       ENOENT: 404,
       file_too_large: 413,

@@ -4,7 +4,6 @@
  */
 
 import type { Server, Socket } from 'socket.io'
-import { getSystemPrompt } from '../../../lib/llm-prompt'
 import { getSession, getSessionDetail, createSession, addMessage, updateSession, updateSessionStats } from '../../../db/hermes/session-store'
 import { logger, bridgeLogger } from '../../logger'
 import { normalizeTokenUsage, recordSessionUsage } from '../../usage-recorder'
@@ -335,9 +334,9 @@ export async function handleBridgeRun(
     return
   }
 
-  let fullInstructions = instructions
-    ? `${getSystemPrompt(undefined, { source: data.session_source || data.source })}\n${instructions}`
-    : getSystemPrompt(undefined, { source: data.session_source || data.source })
+  // `instructions` is assembled once by the caller (run-chat/index.ts)。
+  // 不要在此再次注入 system prompt，避免重复拼接。
+  let fullInstructions = instructions || ''
   const sessionRow = getSession(session_id)
   const workspace = await ensureHermesRunWorkspace(profile, sessionRow?.workspace || data.workspace)
   const shouldEmitWorkspaceUpdate = Boolean(workspace && !sessionRow?.workspace)
@@ -364,7 +363,9 @@ export async function handleBridgeRun(
   const runPrompt = [
     'When calling Hermes Web UI endpoints from tools or skills, include the current Hermes profile as the X-Hermes-Profile header if the endpoint supports profile-scoped behavior.',
   ].filter(Boolean).join('\n')
-  fullInstructions = `\n${runPrompt}\n${fullInstructions}`
+  fullInstructions = fullInstructions.trim()
+    ? `${runPrompt}\n${fullInstructions}`
+    : runPrompt
 
   const runMarker = `cli_run_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
   const now = Math.floor(Date.now() / 1000)

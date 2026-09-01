@@ -1,11 +1,18 @@
 import { randomBytes } from 'crypto'
 import { mkdir, writeFile } from 'fs/promises'
-import { join } from 'path'
+import { basename, join } from 'path'
 import { getActiveProfileName } from '../services/hermes/hermes-profile'
-import { getProfileUploadDir } from '../services/hermes/upload-paths'
+import { getProfileUploadDir, isInProfileUploadDir } from '../services/hermes/upload-paths'
 import { MultipartParseError, parseMultipartBoundary, parseMultipartFilename, splitMultipart } from '../lib/multipart'
 
 const MAX_UPLOAD_SIZE = 50 * 1024 * 1024 // 50MB
+
+// Only a short, safe alphanumeric extension is kept from uploaded names.
+function safeExtension(filename: string): string {
+  const base = basename(String(filename).replace(/\0/g, '').replace(/\\/g, '/'))
+  const match = base.match(/(\.[a-zA-Z0-9]{1,16})$/i)
+  return match ? match[1].toLowerCase() : ''
+}
 
 function requestedProfile(ctx: any): string {
   return ctx.state?.profile?.name || getActiveProfileName() || 'default'
@@ -50,9 +57,11 @@ export async function handleUpload(ctx: any) {
       throw error
     }
     if (!filename) continue
-    const ext = filename.includes('.') ? '.' + filename.split('.').pop() : ''
-    const savedName = randomBytes(8).toString('hex') + ext
-    const savedPath = join(uploadDir, savedName)
+    const ext = safeExtension(filename)
+    const savedPath = join(uploadDir, randomBytes(8).toString('hex') + ext)
+    if (!isInProfileUploadDir(savedPath, requestedProfile(ctx))) {
+      ctx.status = 400; ctx.body = { error: 'Invalid upload path' }; return
+    }
     await writeFile(savedPath, data)
     results.push({ name: filename, path: savedPath })
   }

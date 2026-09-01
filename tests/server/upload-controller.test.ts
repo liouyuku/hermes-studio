@@ -19,6 +19,11 @@ vi.mock('../../packages/server/src/services/hermes/hermes-profile', () => ({
 
 vi.mock('../../packages/server/src/services/hermes/upload-paths', () => ({
   getProfileUploadDir: vi.fn((profile: string) => `/tmp/hermes-web-ui/upload/${profile}`),
+  isInProfileUploadDir: vi.fn((filePath: string, profile: string) => {
+    const dir = `/tmp/hermes-web-ui/upload/${profile}`
+    const norm = String(filePath).replace(/\\/g, '/')
+    return norm.startsWith(dir) && !norm.includes('/../')
+  }),
 }))
 
 function multipartBody(
@@ -108,5 +113,61 @@ describe('upload controller', () => {
     expect(ctx.status).toBe(400)
     expect(ctx.body).toEqual({ error: 'Malformed multipart filename' })
     expect(writeFileMock).not.toHaveBeenCalled()
+  })
+
+  it('neutralizes filenames that attempt path traversal and keeps writes inside uploadDir', async () => {
+    const boundary = 'test-boundary'
+    const { handleUpload } = await import('../../packages/server/src/controllers/upload')
+    const ctx: any = {
+      get: vi.fn((header: string) => header === 'content-type' ? `multipart/form-data; boundary=${boundary}` : ''),
+      req: Readable.from([multipartBody(boundary, { filename: 'x.txt/../../evil.sh', content: 'boom' })]),
+      state: { profile: { name: 'research' } },
+      body: undefined,
+      status: 200,
+    }
+
+    await handleUpload(ctx)
+
+    expect(ctx.status).toBe(200)
+    expect(writeFileMock).toHaveBeenCalledOnce()
+    const [savedPath] = writeFileMock.mock.calls[0]
+    expect(normalizePath(savedPath)).toMatch(/^\/tmp\/hermes-web-ui\/upload\/research\/[a-f0-9]+\.sh$/)
+  })
+
+  it('strips traversal segments from the saved extension and keeps the file inside uploadDir', async () => {
+    const boundary = 'test-boundary'
+    const { handleUpload } = await import('../../packages/server/src/controllers/upload')
+    const ctx: any = {
+      get: vi.fn((header: string) => header === 'content-type' ? `multipart/form-data; boundary=${boundary}` : ''),
+      req: Readable.from([multipartBody(boundary, { filename: 'report.png', content: 'hello' })]),
+      state: { profile: { name: 'research' } },
+      body: undefined,
+      status: 200,
+    }
+
+    await handleUpload(ctx)
+
+    expect(ctx.status).toBe(200)
+    expect(writeFileMock).toHaveBeenCalledOnce()
+    const [savedPath] = writeFileMock.mock.calls[0]
+    expect(normalizePath(savedPath)).toMatch(/^\/tmp\/hermes-web-ui\/upload\/research\/[a-f0-9]+\.png$/)
+  })
+
+  it('drops dangerous extension characters (path separators, null bytes)', async () => {
+    const boundary = 'test-boundary'
+    const { handleUpload } = await import('../../packages/server/src/controllers/upload')
+    const ctx: any = {
+      get: vi.fn((header: string) => header === 'content-type' ? `multipart/form-data; boundary=${boundary}` : ''),
+      req: Readable.from([multipartBody(boundary, { filename: 'x\\..\\..\\evil.txt', content: 'boom' })]),
+      state: { profile: { name: 'research' } },
+      body: undefined,
+      status: 200,
+    }
+
+    await handleUpload(ctx)
+
+    expect(writeFileMock).toHaveBeenCalledOnce()
+    const [savedPath] = writeFileMock.mock.calls[0]
+    expect(normalizePath(savedPath)).toMatch(/^\/tmp\/hermes-web-ui\/upload\/research\/[a-f0-9]+\.txt$/)
   })
 })
