@@ -2,7 +2,7 @@
 import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { NButton, NModal, useMessage, NTag } from "naive-ui";
+import { NButton, NModal, NTag } from "naive-ui";
 import { useAppStore } from "@/stores/hermes/app";
 import { usePersistentRecord } from '@/composables/usePersistentRecord'
 import RouteLinkItem from '@/components/common/RouteLinkItem.vue'
@@ -15,7 +15,6 @@ import { changelog } from "@/data/changelog";
 import { getStoredUsername, isStoredSuperAdmin } from "@/api/client";
 
 const { t } = useI18n();
-const message = useMessage();
 const route = useRoute();
 const router = useRouter();
 const appStore = useAppStore();
@@ -31,7 +30,6 @@ const isDesktopShell = computed(() =>
 const showChangelog = ref(false);
 const showVersionManagement = ref(false);
 const showDockerUpdateTip = ref(false);
-const isDockerRuntime = computed(() => appStore.isDocker);
 
 function hasRoute(name: string): boolean {
   return router.hasRoute(name);
@@ -65,15 +63,6 @@ function handleSidebarClick(event: MouseEvent) {
   }
 }
 
-async function handleUpdate() {
-  const ok = await appStore.doUpdate();
-  if (ok) {
-    message.success(t('sidebar.updateSuccess'), { duration: 5000 });
-  } else {
-    message.error(t('sidebar.updateFailed'));
-  }
-}
-
 function handleReloadClient() {
   appStore.reloadClient();
 }
@@ -91,17 +80,7 @@ function openVersionManagement() {
   showVersionManagement.value = true;
 }
 
-function handleDockerUpdateTip() {
-  showDockerUpdateTip.value = true;
-}
 
-function handleUpdateClick() {
-  if (isDockerRuntime.value) {
-    handleDockerUpdateTip();
-    return;
-  }
-  void handleUpdate();
-}
 </script>
 
 <template>
