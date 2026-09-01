@@ -386,7 +386,7 @@ function handleUpdateClick() {
       <NButton v-if="appStore.clientOutdated" type="warning" size="tiny" block class="update-btn" @click="handleReloadClient">
         {{ t('sidebar.reloadClientVersion', { version: appStore.serverVersion }) }}
       </NButton>
-      <NButton
+      <!-- <NButton
         v-else-if="appStore.updateAvailable"
         type="primary"
         size="tiny"
@@ -398,7 +398,7 @@ function handleUpdateClick() {
         {{ !isDockerRuntime && appStore.updating
           ? t('sidebar.updating')
           : t('sidebar.updateVersion', { version: appStore.latestVersion }) }}
-      </NButton>
+      </NButton> -->
     </div>
 
     <div class="sidebar-top-actions">
