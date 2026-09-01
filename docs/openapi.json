@@ -1,0 +1,2830 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Hermes Studio API",
+    "description": "Hermes Studio API — chat sessions, scheduled jobs, platform channels, model management, skills, memory, logs, file browser, group chat, and terminal.",
+    "version": "0.6.30"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8648",
+      "description": "Local development"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Health",
+      "description": "Health check"
+    },
+    {
+      "name": "Update",
+      "description": "Self-update management"
+    },
+    {
+      "name": "Upload",
+      "description": "File upload"
+    },
+    {
+      "name": "Webhook",
+      "description": "Incoming webhooks"
+    },
+    {
+      "name": "Auth",
+      "description": "Authentication management"
+    },
+    {
+      "name": "Devices",
+      "description": "Device pairing and LAN peer operations"
+    },
+    {
+      "name": "Coding Agents",
+      "description": "Coding agent installation, config, and runs"
+    },
+    {
+      "name": "API Docs",
+      "description": "OpenAPI route catalog"
+    },
+    {
+      "name": "Terminal",
+      "description": "WebSocket terminal access"
+    }
+  ],
+  "paths": {
+    "/api/auth/avatar": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Get avatar",
+        "description": "GET /api/auth/avatar",
+        "operationId": "getMyAvatar",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Update avatar",
+        "description": "PUT /api/auth/avatar",
+        "operationId": "updateMyAvatar",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "avatar": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/change-password": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Create change-password",
+        "description": "POST /api/auth/change-password",
+        "operationId": "changePassword",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "currentPassword": {
+                    "type": "string"
+                  },
+                  "newPassword": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "currentPassword",
+                  "newPassword"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/change-username": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Create change-username",
+        "description": "POST /api/auth/change-username",
+        "operationId": "changeUsername",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "currentPassword": {
+                    "type": "string"
+                  },
+                  "newUsername": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "currentPassword",
+                  "newUsername"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/locked-ips": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Get locked-ips",
+        "description": "GET /api/auth/locked-ips",
+        "operationId": "listLockedIps",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Delete locked-ips",
+        "description": "DELETE /api/auth/locked-ips",
+        "operationId": "unlockIpHandler",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "parameters": [
+          {
+            "name": "ip",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Create login",
+        "description": "POST /api/auth/login",
+        "operationId": "login",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "password": {
+                    "type": "string"
+                  },
+                  "username": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "password",
+                  "username"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/mcu-login": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Create mcu-login",
+        "description": "POST /api/auth/mcu-login",
+        "operationId": "microcontrollerLogin",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "account": {
+                    "type": "string"
+                  },
+                  "device_code": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "relayMode": {
+                    "type": "string"
+                  },
+                  "remote": {
+                    "type": "boolean"
+                  },
+                  "token": {
+                    "type": "string"
+                  },
+                  "url": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "account",
+                  "id",
+                  "password",
+                  "token"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Get me",
+        "description": "GET /api/auth/me",
+        "operationId": "currentUser",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/auth/password": {
+      "delete": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Delete password",
+        "description": "DELETE /api/auth/password",
+        "operationId": "removePassword",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/auth/setup": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Create setup",
+        "description": "POST /api/auth/setup",
+        "operationId": "setupPassword",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/auth/status": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Get status",
+        "description": "GET /api/auth/status",
+        "operationId": "authStatus",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/auth/users": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Get users",
+        "description": "GET /api/auth/users",
+        "operationId": "listManagedUsers",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Create users",
+        "description": "POST /api/auth/users",
+        "operationId": "createManagedUser",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "defaultProfile": {
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "profiles": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "role": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "status": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "username": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/users/{id}": {
+      "put": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Update :id",
+        "description": "PUT /api/auth/users/:id",
+        "operationId": "updateManagedUser",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "defaultProfile": {
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "profiles": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "role": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "status": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "username": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Delete :id",
+        "description": "DELETE /api/auth/users/:id",
+        "operationId": "deleteManagedUser",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      }
+    },
+    "/api/coding-agents": {
+      "get": {
+        "tags": [
+          "Coding Agents"
+        ],
+        "summary": "Get coding-agents",
+        "description": "GET /api/coding-agents",
+        "operationId": "status",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/coding-agents/runs/{sessionId}": {
+      "delete": {
+        "tags": [
+          "Coding Agents"
+        ],
+        "summary": "Delete :sessionId",
+        "description": "DELETE /api/coding-agents/runs/:sessionId",
+        "operationId": "stopRun",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/coding-agents/runs/{sessionId}/input": {
+      "post": {
+        "tags": [
+          "Coding Agents"
+        ],
+        "summary": "Create input",
+        "description": "POST /api/coding-agents/runs/:sessionId/input",
+        "operationId": "sendRunInput",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "input": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/coding-agents/{id}": {
+      "delete": {
+        "tags": [
+          "Coding Agents"
+        ],
+        "summary": "Delete :id",
+        "description": "DELETE /api/coding-agents/:id",
+        "operationId": "remove",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/coding-agents/{id}/config-files/{key}": {
+      "get": {
+        "tags": [
+          "Coding Agents"
+        ],
+        "summary": "Get :key",
+        "description": "GET /api/coding-agents/:id/config-files/:key",
+        "operationId": "readConfigFile",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Coding Agents"
+        ],
+        "summary": "Update :key",
+        "description": "PUT /api/coding-agents/:id/config-files/:key",
+        "operationId": "writeConfigFile",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/coding-agents/{id}/install": {
+      "post": {
+        "tags": [
+          "Coding Agents"
+        ],
+        "summary": "Create install",
+        "description": "POST /api/coding-agents/:id/install",
+        "operationId": "install",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/coding-agents/{id}/launch/native": {
+      "post": {
+        "tags": [
+          "Coding Agents"
+        ],
+        "summary": "Create native",
+        "description": "POST /api/coding-agents/:id/launch/native",
+        "operationId": "nativeLaunch",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "apiKey": {
+                    "type": "string"
+                  },
+                  "apiMode": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "baseUrl": {
+                    "type": "string"
+                  },
+                  "mode": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "model": {
+                    "type": "string"
+                  },
+                  "profile": {
+                    "type": "string"
+                  },
+                  "provider": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/coding-agents/{id}/launch/prepare": {
+      "post": {
+        "tags": [
+          "Coding Agents"
+        ],
+        "summary": "Create prepare",
+        "description": "POST /api/coding-agents/:id/launch/prepare",
+        "operationId": "prepareLaunch",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "apiKey": {
+                    "type": "string"
+                  },
+                  "apiMode": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "baseUrl": {
+                    "type": "string"
+                  },
+                  "mode": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "model": {
+                    "type": "string"
+                  },
+                  "profile": {
+                    "type": "string"
+                  },
+                  "provider": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/coding-agents/{id}/runs": {
+      "post": {
+        "tags": [
+          "Coding Agents"
+        ],
+        "summary": "Create runs",
+        "description": "POST /api/coding-agents/:id/runs",
+        "operationId": "startRun",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "apiKey": {
+                    "type": "string"
+                  },
+                  "apiMode": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "baseUrl": {
+                    "type": "string"
+                  },
+                  "mode": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "model": {
+                    "type": "string"
+                  },
+                  "profile": {
+                    "type": "string"
+                  },
+                  "provider": {
+                    "type": "string"
+                  },
+                  "sessionId": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/devices": {
+      "get": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Get devices",
+        "description": "GET /api/devices",
+        "operationId": "listDevices",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/devices/link-info": {
+      "get": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Get link-info",
+        "description": "GET /api/devices/link-info",
+        "operationId": "deviceLinkInfoController",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/devices/link-request": {
+      "post": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Create link-request",
+        "description": "POST /api/devices/link-request",
+        "operationId": "requestDeviceLinkController",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nonce": {
+                    "type": "string"
+                  },
+                  "signature": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/devices/link-status": {
+      "post": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Create link-status",
+        "description": "POST /api/devices/link-status",
+        "operationId": "requestDeviceLinkStatusController",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "device_id": {
+                    "type": "string"
+                  },
+                  "device_public_key": {
+                    "type": "string"
+                  },
+                  "nonce": {
+                    "type": "string"
+                  },
+                  "signature": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/devices/manual-request": {
+      "post": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Create manual-request",
+        "description": "POST /api/devices/manual-request",
+        "operationId": "requestManualDevicePairing",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/devices/pairing-link": {
+      "get": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Get pairing-link",
+        "description": "GET /api/devices/pairing-link",
+        "operationId": "getDevicePairingLink",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/devices/peer-connections": {
+      "get": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Get peer-connections",
+        "description": "GET /api/devices/peer-connections",
+        "operationId": "listPeerConnections",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/devices/peer-connections/{connectionId}/disconnect": {
+      "post": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Create disconnect",
+        "description": "POST /api/devices/peer-connections/:connectionId/disconnect",
+        "operationId": "disconnectPeerDevice",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "parameters": [
+          {
+            "name": "connectionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/devices/peer-connections/{connectionId}/download": {
+      "post": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Create download",
+        "description": "POST /api/devices/peer-connections/:connectionId/download",
+        "operationId": "downloadPeerFile",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "parameters": [
+          {
+            "name": "connectionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/devices/peer-connections/{connectionId}/exec": {
+      "post": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Create exec",
+        "description": "POST /api/devices/peer-connections/:connectionId/exec",
+        "operationId": "execPeerCommand",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "parameters": [
+          {
+            "name": "connectionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "args": {
+                    "type": "string"
+                  },
+                  "cwd": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/devices/peer-connections/{connectionId}/terminal": {
+      "post": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Create terminal",
+        "description": "POST /api/devices/peer-connections/:connectionId/terminal",
+        "operationId": "createPeerTerminal",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "parameters": [
+          {
+            "name": "connectionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "shell": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/devices/peer-connections/{connectionId}/terminal/{terminalId}/close": {
+      "post": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Create close",
+        "description": "POST /api/devices/peer-connections/:connectionId/terminal/:terminalId/close",
+        "operationId": "closePeerTerminal",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "parameters": [
+          {
+            "name": "connectionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "terminalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/devices/peer-connections/{connectionId}/terminal/{terminalId}/input": {
+      "post": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Create input",
+        "description": "POST /api/devices/peer-connections/:connectionId/terminal/:terminalId/input",
+        "operationId": "writePeerTerminal",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "parameters": [
+          {
+            "name": "connectionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "terminalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/devices/peer-connections/{connectionId}/terminal/{terminalId}/read": {
+      "get": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Get read",
+        "description": "GET /api/devices/peer-connections/:connectionId/terminal/:terminalId/read",
+        "operationId": "readPeerTerminal",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "parameters": [
+          {
+            "name": "connectionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "terminalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/devices/peer-connections/{connectionId}/terminal/{terminalId}/resize": {
+      "post": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Create resize",
+        "description": "POST /api/devices/peer-connections/:connectionId/terminal/:terminalId/resize",
+        "operationId": "resizePeerTerminal",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "parameters": [
+          {
+            "name": "connectionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "terminalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/devices/peer-connections/{connectionId}/terminals": {
+      "get": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Get terminals",
+        "description": "GET /api/devices/peer-connections/:connectionId/terminals",
+        "operationId": "listPeerTerminals",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "parameters": [
+          {
+            "name": "connectionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/devices/peer-connections/{connectionId}/upload": {
+      "post": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Create upload",
+        "description": "POST /api/devices/peer-connections/:connectionId/upload",
+        "operationId": "uploadPeerFile",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "parameters": [
+          {
+            "name": "connectionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/devices/scan": {
+      "post": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Create scan",
+        "description": "POST /api/devices/scan",
+        "operationId": "scanDevices",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/devices/{id}/approve": {
+      "post": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Create approve",
+        "description": "POST /api/devices/:id/approve",
+        "operationId": "approveDevice",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/devices/{id}/block": {
+      "post": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Create block",
+        "description": "POST /api/devices/:id/block",
+        "operationId": "blockDevice",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/devices/{id}/connect": {
+      "post": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Create connect",
+        "description": "POST /api/devices/:id/connect",
+        "operationId": "connectPeerDevice",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/devices/{id}/reject": {
+      "post": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Create reject",
+        "description": "POST /api/devices/:id/reject",
+        "operationId": "rejectDevice",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/devices/{id}/request": {
+      "post": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Create request",
+        "description": "POST /api/devices/:id/request",
+        "operationId": "requestDevicePairing",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "pairing_code": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/devices/{id}/request-history": {
+      "delete": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Delete request-history",
+        "description": "DELETE /api/devices/:id/request-history",
+        "operationId": "deleteDeviceRequestHistory",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/devices/{id}/unblock": {
+      "post": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Create unblock",
+        "description": "POST /api/devices/:id/unblock",
+        "operationId": "unblockDevice",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/hermes/openapi.json": {
+      "get": {
+        "tags": [
+          "API Docs"
+        ],
+        "summary": "Get openapi.json",
+        "description": "GET /api/hermes/openapi.json",
+        "operationId": "openapi",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/hermes/update": {
+      "post": {
+        "tags": [
+          "Update"
+        ],
+        "summary": "Create update",
+        "description": "POST /api/hermes/update",
+        "operationId": "handleUpdate",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/hermes/update/preview": {
+      "get": {
+        "tags": [
+          "Update"
+        ],
+        "summary": "Get preview",
+        "description": "GET /api/hermes/update/preview",
+        "operationId": "previewStatus",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/hermes/update/preview/install": {
+      "post": {
+        "tags": [
+          "Update"
+        ],
+        "summary": "Create install",
+        "description": "POST /api/hermes/update/preview/install",
+        "operationId": "installPreview",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/hermes/update/preview/prepare": {
+      "post": {
+        "tags": [
+          "Update"
+        ],
+        "summary": "Create prepare",
+        "description": "POST /api/hermes/update/preview/prepare",
+        "operationId": "preparePreview",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tag": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/hermes/update/preview/start": {
+      "post": {
+        "tags": [
+          "Update"
+        ],
+        "summary": "Create start",
+        "description": "POST /api/hermes/update/preview/start",
+        "operationId": "startPreview",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tag": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/hermes/update/preview/stop": {
+      "post": {
+        "tags": [
+          "Update"
+        ],
+        "summary": "Create stop",
+        "description": "POST /api/hermes/update/preview/stop",
+        "operationId": "stopPreview",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/hermes/update/preview/tags": {
+      "get": {
+        "tags": [
+          "Update"
+        ],
+        "summary": "Get tags",
+        "description": "GET /api/hermes/update/preview/tags",
+        "operationId": "previewTags",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/openapi.json": {
+      "get": {
+        "tags": [
+          "API Docs"
+        ],
+        "summary": "Get openapi.json",
+        "description": "GET /api/openapi.json",
+        "operationId": "openapi",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Get health",
+        "description": "GET /health",
+        "operationId": "healthCheck",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/upload": {
+      "post": {
+        "tags": [
+          "Upload"
+        ],
+        "summary": "Create upload",
+        "description": "POST /upload",
+        "operationId": "handleUpload",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/webhook": {
+      "post": {
+        "tags": [
+          "Webhook"
+        ],
+        "summary": "Create webhook",
+        "description": "POST /webhook",
+        "operationId": "handleWebhook",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "event": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chat-run/runs": {
+      "post": {
+        "tags": [
+          "Chat Run"
+        ],
+        "summary": "Run chat and wait for completion",
+        "description": "Starts a Hermes Studio chat run through the chat-run transport and waits for a terminal result. Use this from HTTP/MCP callers that cannot consume Socket.IO streams.",
+        "operationId": "runChatOnce",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "input"
+                ],
+                "properties": {
+                  "input": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": true
+                        }
+                      }
+                    ],
+                    "description": "User message text or content blocks."
+                  },
+                  "session_id": {
+                    "type": "string",
+                    "description": "Optional session id. Omit this to create a new session automatically. Provide an existing session id to continue that session."
+                  },
+                  "profile": {
+                    "type": "string",
+                    "description": "Hermes Studio profile name. Defaults to the authenticated request profile or default."
+                  },
+                  "provider": {
+                    "type": "string",
+                    "description": "Model provider key to use for this run, for example openai, anthropic, deepseek, or a configured custom provider key."
+                  },
+                  "model": {
+                    "type": "string",
+                    "description": "Model id to use for this run, for example gpt-5.1 or deepseek-v4-pro."
+                  },
+                  "model_groups": {
+                    "type": "array",
+                    "description": "Optional provider/model fallback groups.",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "provider",
+                        "models"
+                      ],
+                      "properties": {
+                        "provider": {
+                          "type": "string"
+                        },
+                        "models": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "cli",
+                      "coding_agent",
+                      "global_agent"
+                    ],
+                    "description": "Run backend source. Use cli for Hermes bridge runs, coding_agent for Claude Code/Codex, or global_agent for global-agent sessions. Omit source for normal Hermes chat runs; do not use the legacy api_server source."
+                  },
+                  "session_source": {
+                    "type": "string",
+                    "enum": [
+                      "global_agent"
+                    ],
+                    "description": "Marks a coding-agent or bridge session as launched from the global agent."
+                  },
+                  "instructions": {
+                    "type": "string",
+                    "description": "Optional extra run instructions appended after the system prompt."
+                  },
+                  "workspace": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "Optional current working directory for the run."
+                  },
+                  "reasoning_effort": {
+                    "type": "string",
+                    "description": "Optional per-run reasoning effort override."
+                  },
+                  "coding_agent_id": {
+                    "type": "string",
+                    "enum": [
+                      "claude-code",
+                      "codex"
+                    ],
+                    "description": "Coding agent id when source is coding_agent."
+                  },
+                  "agent_id": {
+                    "type": "string",
+                    "enum": [
+                      "claude-code",
+                      "codex"
+                    ],
+                    "description": "Alias for coding_agent_id."
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "scoped",
+                      "global"
+                    ],
+                    "description": "Coding-agent launch mode."
+                  },
+                  "baseUrl": {
+                    "type": "string",
+                    "description": "Optional provider base URL for coding-agent runs."
+                  },
+                  "apiKey": {
+                    "type": "string",
+                    "description": "Optional provider API key for coding-agent runs."
+                  },
+                  "apiMode": {
+                    "type": "string",
+                    "enum": [
+                      "chat_completions",
+                      "codex_responses",
+                      "anthropic_messages"
+                    ],
+                    "description": "Optional provider wire API mode for coding-agent runs."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1800000,
+                    "default": 300000,
+                    "description": "Maximum time to wait for run.completed or run.failed."
+                  },
+                  "include_events": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Include recorded run events in the HTTP response."
+                  }
+                },
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Run completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "status": {
+                      "type": "string",
+                      "example": "completed"
+                    },
+                    "session_id": {
+                      "type": "string"
+                    },
+                    "run_id": {
+                      "type": "string"
+                    },
+                    "output": {
+                      "type": "string"
+                    },
+                    "reasoning": {
+                      "type": "string"
+                    },
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "409": {
+            "description": "Run requires approval or clarification"
+          },
+          "500": {
+            "description": "Run failed"
+          },
+          "504": {
+            "description": "Run timed out"
+          }
+        }
+      }
+    },
+    "/api/hermes/terminal": {
+      "get": {
+        "tags": [
+          "Terminal"
+        ],
+        "summary": "WebSocket terminal connection",
+        "description": "Establish a WebSocket connection for interactive terminal access. Uses the `ws` or `wss` protocol with `?token=` for authentication.",
+        "operationId": "terminalWebSocket",
+        "responses": {
+          "101": {
+            "description": "Switching Protocols - WebSocket connection established"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "API Token"
+      }
+    },
+    "schemas": {},
+    "responses": {
+      "Unauthorized": {
+        "description": "Unauthorized - Invalid or missing authentication token",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "example": "Unauthorized"
+                }
+              }
+            }
+          }
+        }
+      },
+      "BadRequest": {
+        "description": "Bad Request - Invalid parameters",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "example": "Invalid request"
+                }
+              }
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "example": "Not found"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
