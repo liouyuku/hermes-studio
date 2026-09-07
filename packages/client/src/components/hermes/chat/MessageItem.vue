@@ -248,7 +248,7 @@ const thinkingCharCount = computed(() => {
   return count;
 });
 
-// 流式思考态：仍有未闭合 <think> 标签，或 reasoning 有内容但正文尚未开始。
+// 流式思考态：仍有未闭合  thinking 标签，或 reasoning 有内容但正文尚未开始。
 const thinkingStreamingNow = computed(() => {
   if (!props.message.isStreaming) return false;
   if (parsedThinking.value.pending !== null) return true;
@@ -258,10 +258,17 @@ const thinkingStreamingNow = computed(() => {
 
 const thinkingOverride = ref<boolean | null>(null);
 
+// 思考过程展示策略（2026-09-07 调整）：
+// - show_reasoning 为总开关：关闭时完全不渲染思考区（含流式思考），标题也不显示。
+// - 开启时默认全部折叠；仅流式生成中强制展开；生成完成自动收起；
+//   用户可手动点击标题单独展开/收起任意一条历史思考。
+const showReasoningEnabled = computed(() => !!settingsStore.display.show_reasoning);
+
 const thinkingExpanded = computed(() => {
+  if (!showReasoningEnabled.value) return false;
   if (thinkingStreamingNow.value) return true;
   if (thinkingOverride.value !== null) return thinkingOverride.value;
-  return !!settingsStore.display.show_reasoning;
+  return false;
 });
 
 function toggleThinking() {
@@ -1072,7 +1079,7 @@ onBeforeUnmount(() => {
               </div>
             </div>
             <div
-              v-if="hasThinking"
+              v-if="hasThinking && showReasoningEnabled"
               class="thinking-block"
               :class="{ expanded: thinkingExpanded }"
             >

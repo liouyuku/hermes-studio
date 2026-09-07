@@ -164,6 +164,12 @@ interface SnapshotFile {
   content: Buffer | null
 }
 
+// 2026-09-04: workspace run diff 卡片默认关闭（用户反馈会话里刷一堆 .md 噪音卡）。
+// 根因：CLI/WebUI 会话 workspace 是 ~/.hermes/workspace，其 git root = 整个 ~/.hermes（901 个脏文件），
+// 每轮运行都会把该 repo 内任何 mtime 变化的 .md/memory/skills 文件计入 diff，且一张卡/一轮运行。
+// 恢复方式：HERMES_WEB_UI_WORKSPACE_DIFF=1 环境变量 + 重新 build-server。
+const WORKSPACE_DIFF_ENABLED = process.env.HERMES_WEB_UI_WORKSPACE_DIFF === '1'
+
 interface WorkspaceRunCheckpoint {
   sessionId: string
   runId: string
@@ -575,6 +581,7 @@ export function startWorkspaceRunCheckpoint(args: {
   runId?: string | null
   workspace?: string | null
 }): void {
+  if (!WORKSPACE_DIFF_ENABLED) return
   const workspace = args.workspace ? resolve(args.workspace) : ''
   const runId = args.runId || ''
   if (!workspace || !runId) return
@@ -634,6 +641,7 @@ export function completeWorkspaceRunCheckpointDraft(args: {
   runId?: string | null
   workspace?: string | null
 }): SaveWorkspaceRunChangeInput | null {
+  if (!WORKSPACE_DIFF_ENABLED) return null
   const runId = args.runId || ''
   if (!runId) return null
   const key = checkpointKey(args.sessionId, runId)

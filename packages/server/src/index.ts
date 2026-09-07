@@ -5,9 +5,9 @@ import bodyParser from '@koa/bodyparser'
 import serve from 'koa-static'
 import send from 'koa-send'
 import os from 'os'
-import { relative, resolve } from 'path'
+import { isAbsolute, relative, resolve } from 'path'
 import { mkdir } from 'fs/promises'
-import { readFileSync } from 'fs'
+import { existsSync, readFileSync, statSync } from 'fs'
 import { config, shouldCreateWebUiDataDir } from './config'
 import { initLoginLimiter } from './services/login-limiter'
 import { bindShutdown } from './services/shutdown'
@@ -166,6 +166,11 @@ function envFlagEnabled(name: string): boolean {
   return ['1', 'true', 'yes', 'on'].includes(value)
 }
 
+function isPathWithin(child: string, parent: string): boolean {
+  const rel = relative(parent, child)
+  return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))
+}
+
 function gatewayAutostartDisabled(): boolean {
   return envFlagEnabled('HERMES_WEB_UI_DISABLE_GATEWAY_AUTOSTART')
 }
@@ -307,6 +312,28 @@ export async function bootstrap() {
   // Register all routes (handles auth internally)
   registerRoutes(app, [requireUserJwt, resolveUserProfile])
   console.log('[bootstrap] routes registered')
+
+  // ─── 导出目录静态服务：/exports/* → config.exportsDir（EXPORTS_DIR 可覆盖）───
+  app.use(async (ctx, next) => {
+    if (!ctx.path.startsWith('/exports')) {
+      await next()
+      return
+    }
+    const rel = decodeURIComponent(ctx.path.slice('/exports'.length)).replace(/^\/+/, '')
+    if (!rel) {
+      ctx.status = 404
+      ctx.body = 'exports: directory listing disabled'
+      return
+    }
+    const target = resolve(config.exportsDir, rel)
+    if (!isPathWithin(target, config.exportsDir) || !existsSync(target) || !statSync(target).isFile()) {
+      ctx.status = 404
+      ctx.body = 'not found'
+      return
+    }
+    await send(ctx, rel, { root: config.exportsDir, index: false })
+  })
+  console.log(`[bootstrap] exports static mounted: ${config.exportsDir}`)
 
   // SPA fallback
   const distDir = resolve(__dirname, '..', 'client')

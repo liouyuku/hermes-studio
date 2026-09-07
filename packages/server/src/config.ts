@@ -71,6 +71,8 @@ export const config = {
   host: getListenHost(),
   appHome,
   uploadDir: process.env.UPLOAD_DIR || join(appHome, 'upload'),
+  // 导出目录静态服务根（/exports/*）：Hermes workspace 导出子目录，可用 EXPORTS_DIR 覆盖
+  exportsDir: process.env.EXPORTS_DIR?.trim() || join(homedir(), '.hermes', 'workspace', 'exports'),
   dataDir: resolve(__dirname, '..', 'data'),
   corsOrigins: getCorsOrigins(),
   remoteRelay,
