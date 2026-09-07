@@ -709,6 +709,31 @@ function formatTokens(n: number): string {
   return String(n)
 }
 
+// --- Per-turn LLM stats line (fixed segments; '-' when no data yet) ---
+
+const llmSegments = computed(() => {
+  const session = chatStore.activeSession
+  if (!session) return []
+  const s = session.llmStats
+  const dash = (v: number | null | undefined, fmt?: (n: number) => string) =>
+    v == null ? '-' : fmt ? fmt(v) : String(v)
+  const f1 = (v: number | null | undefined) => dash(v, n => n.toFixed(1))
+  const parts: string[] = []
+  parts.push(`${dash(s?.turnIndex ?? null)} 轮 · ${dash(s?.step ?? null)} 步`)
+  parts.push(`LLM ${f1(s?.durationSec ?? null)}秒`)
+  parts.push(
+    `首 token 平均 ${f1(s?.ttftAvgSec ?? null)}秒 · ${dash(s?.tokPerSec ?? null)} tok/s`,
+  )
+  parts.push(`缓存命中 ${dash(s?.cacheHitPct ?? null)}%`)
+  parts.push(
+    `输入 ${dash(s?.inputTokens ?? null, formatTokens)} tok · 输出 ${dash(
+      s?.outputTokens ?? null,
+      formatTokens,
+    )} tok`,
+  )
+  return parts
+})
+
 // --- File attachment helpers ---
 
 function addFile(file: File) {
@@ -1038,7 +1063,7 @@ function isImage(type: string): boolean {
 
     <div
       class="input-wrapper"
-      :class="{ 'drag-over': isDragging }"
+      :class="{ 'drag-over': isDragging, 'has-llm-stats': llmSegments.length > 0 }"
       :style="inputWrapperStyle"
       @dragover="handleDragOver"
       @dragenter="handleDragEnter"
@@ -1060,6 +1085,12 @@ function isImage(type: string): boolean {
         @dblclick="resetTextareaHeight"
       ></div>
       <div v-if="showContextUsage" class="context-usage-row">
+        <span
+          v-if="llmSegments.length > 0"
+          class="context-llm-stats"
+          :title="llmSegments.join(' | ')"
+          >{{ llmSegments.join(' | ') }}</span
+        >
         <span class="context-info" :class="{ 'context-warning': usagePercent > 80 }">
           {{ formatTokens(totalTokens) }} /
           <NTooltip trigger="hover" :disabled="isMobileViewport">
@@ -1517,18 +1548,32 @@ function isImage(type: string): boolean {
   justify-content: flex-end;
   gap: 7px;
   position: absolute;
-  top: 9px;
+  top: 8px;
   right: 14px;
   z-index: 1;
   min-width: 0;
   max-width: calc(100% - 28px);
   padding: 0;
   pointer-events: auto;
+  font-size: 11px;
+  color: $text-muted;
+  white-space: nowrap;
+}
+
+.context-llm-stats {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: auto;
+}
+
+.input-wrapper.has-llm-stats {
+  padding-top: 26px;
 }
 
 .context-info {
-  font-size: 11px;
-  color: $text-muted;
+  flex: 0 0 auto;
   min-width: 0;
   white-space: nowrap;
 
@@ -1574,17 +1619,15 @@ function isImage(type: string): boolean {
   }
 }
 
-.dark .context-info {
+.dark .context-usage-row {
   color: rgba(255, 255, 255, 0.68);
+}
 
-  &.context-warning {
-    color: #f0bc58;
-  }
+.dark .context-info.context-warning {
+  color: #f0bc58;
 }
 
 .dark .context-limit-editable {
-  color: rgba(255, 255, 255, 0.8);
-
   &:hover {
     border-bottom-color: rgba(255, 255, 255, 0.58);
     background: rgba(255, 255, 255, 0.08);

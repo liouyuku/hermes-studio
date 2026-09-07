@@ -91,6 +91,20 @@ export interface SessionState {
     startedAt: number
   }>
   bridgeCompressionResults?: Record<string, BridgeCompressionResult>
+  /** Per-turn LLM stats accumulator fed by model.usage events (provider-measured). */
+  llmStats?: {
+    turnId: string
+    turnIndex: number
+    step: number
+    durationSec: number
+    ttftSum: number
+    ttftCount: number
+    inputTokens: number
+    outputTokens: number
+    cacheReadTokens: number
+    cacheWriteTokens: number
+    hasUsage: boolean
+  }
 }
 
 export interface ResponseRunState {

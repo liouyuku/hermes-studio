@@ -165,6 +165,7 @@ const sessionEventHandlers = new Map<string, {
   onAbortTimeout?: (event: RunEvent) => void
   onAbortCompleted: (event: RunEvent) => void
   onUsageUpdated: (event: RunEvent) => void
+  onLlmStats?: (event: RunEvent) => void
   onAgentEvent?: (event: RunEvent) => void
   onSessionCommand?: (event: RunEvent) => void
   onSessionTitleUpdated?: (event: RunEvent) => void
@@ -424,6 +425,16 @@ function globalUsageUpdatedHandler(event: RunEvent): void {
   }
 }
 
+function globalLlmStatsHandler(event: RunEvent): void {
+  const sid = event.session_id
+  if (!sid) return
+
+  const handlers = sessionEventHandlers.get(sid)
+  if (handlers?.onLlmStats) {
+    handlers.onLlmStats(event)
+  }
+}
+
 function globalSessionCommandHandler(event: RunEvent): void {
   const sid = event.session_id
   if (!sid) return
@@ -566,6 +577,7 @@ export function registerSessionHandlers(
     onAbortTimeout?: (event: RunEvent) => void
     onAbortCompleted: (event: RunEvent) => void
     onUsageUpdated: (event: RunEvent) => void
+    onLlmStats?: (event: RunEvent) => void
     onAgentEvent?: (event: RunEvent) => void
     onSessionCommand?: (event: RunEvent) => void
     onSessionTitleUpdated?: (event: RunEvent) => void
@@ -744,6 +756,7 @@ export function connectChatRun(requestedProfile?: string | null, transport: Chat
 
     // Usage events
     chatRunSocket.on('usage.updated', globalUsageUpdatedHandler)
+    chatRunSocket.on('llm.stats', globalLlmStatsHandler)
     chatRunSocket.on('agent.event', globalAgentEventHandler)
     chatRunSocket.on('run.reattach_failed', globalRunReattachFailedHandler)
     chatRunSocket.on('session.command', globalSessionCommandHandler)
@@ -974,6 +987,10 @@ export function startRunViaSocket(
       onDone()
     },
     onUsageUpdated: (evt: RunEvent) => {
+      if (closed) return
+      onEvent(evt)
+    },
+    onLlmStats: (evt: RunEvent) => {
       if (closed) return
       onEvent(evt)
     },

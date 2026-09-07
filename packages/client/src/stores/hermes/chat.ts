@@ -131,6 +131,17 @@ export interface Session {
   inputTokens?: number
   outputTokens?: number
   contextTokens?: number
+  /** Live per-turn LLM stats (bridge-only, provider-measured). Set by 'llm.stats' events; cleared on each run start. */
+  llmStats?: {
+    turnIndex: number
+    step: number
+    durationSec: number | null
+    ttftAvgSec: number | null
+    tokPerSec: number | null
+    cacheHitPct: number | null
+    inputTokens: number
+    outputTokens: number
+  }
   endedAt?: number | null
   parentSessionId?: string | null
   forkPointMessageId?: string | null
@@ -2637,6 +2648,8 @@ export const useChatStore = defineStore('chat', () => {
               runProducedAssistantContent = false
               runHadToolActivity = false
               closeStreamingAssistant()
+              const runStartedTarget = sessions.value.find(s => s.id === sid)
+              if (runStartedTarget) runStartedTarget.llmStats = undefined
               activeRunMarker = readRunMarker(evt) ?? null
               if ((evt as any).queue_length > 0) {
                 queueLengths.value.set(sid, (evt as any).queue_length)
@@ -3105,6 +3118,23 @@ export const useChatStore = defineStore('chat', () => {
                 target.inputTokens = (evt as any).inputTokens
                 target.outputTokens = (evt as any).outputTokens
                 if ((evt as any).contextTokens != null) target.contextTokens = (evt as any).contextTokens
+              }
+              break
+            }
+
+            case 'llm.stats': {
+              const target = sessions.value.find(s => s.id === sid)
+              if (target) {
+                target.llmStats = {
+                  turnIndex: (evt as any).turnIndex ?? 0,
+                  step: (evt as any).step ?? 0,
+                  durationSec: (evt as any).durationSec ?? null,
+                  ttftAvgSec: (evt as any).ttftAvgSec ?? null,
+                  tokPerSec: (evt as any).tokPerSec ?? null,
+                  cacheHitPct: (evt as any).cacheHitPct ?? null,
+                  inputTokens: (evt as any).inputTokens ?? 0,
+                  outputTokens: (evt as any).outputTokens ?? 0,
+                }
               }
               break
             }
@@ -3699,6 +3729,23 @@ export const useChatStore = defineStore('chat', () => {
           }
           break
         }
+
+        case 'llm.stats': {
+          const target = sessions.value.find(s => s.id === sid)
+          if (target) {
+            target.llmStats = {
+              turnIndex: (evt as any).turnIndex ?? 0,
+              step: (evt as any).step ?? 0,
+              durationSec: (evt as any).durationSec ?? null,
+              ttftAvgSec: (evt as any).ttftAvgSec ?? null,
+              tokPerSec: (evt as any).tokPerSec ?? null,
+              cacheHitPct: (evt as any).cacheHitPct ?? null,
+              inputTokens: (evt as any).inputTokens ?? 0,
+              outputTokens: (evt as any).outputTokens ?? 0,
+            }
+          }
+          break
+        }
       }
     }
 
@@ -3721,6 +3768,7 @@ export const useChatStore = defineStore('chat', () => {
       onAbortTimeout: (evt) => handleEvent(evt),
       onAbortCompleted: (evt) => handleEvent(evt),
       onUsageUpdated: (evt) => handleEvent(evt),
+      onLlmStats: (evt) => handleEvent(evt),
       onAgentEvent: (evt) => handleEvent(evt),
       onSessionCommand: (evt) => handleEvent(evt),
       onSessionWorkspaceUpdated: (evt) => handleEvent(evt),

@@ -184,6 +184,8 @@ class AgentPool:
             "api_duration": kwargs.get("api_duration"),
             "started_at": kwargs.get("started_at"),
             "ended_at": kwargs.get("ended_at"),
+            # First stream chunk time (epoch s); TTFB = first_chunk_at - started_at.
+            "first_chunk_at": kwargs.get("first_chunk_at"),
         })
 
     def get_or_create(

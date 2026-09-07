@@ -757,6 +757,7 @@ export async function resumeBridgeRun(
           model: args.model,
           provider: args.provider,
         })
+        recordBridgeLlmStats(sessionId, state, bridgeEvent, emit)
       }
     }
     const output = typeof snapshot.output === 'string' ? snapshot.output : deltas.join('')
@@ -945,6 +946,93 @@ async function estimateSnapshotAwareMessageTokens(args: {
   }
 }
 
+function roundTo1(n: number): number {
+  return Math.round(n * 10) / 10
+}
+
+/**
+ * Accumulate provider-measured per-turn LLM stats from a model.usage bridge event
+ * and emit an 'llm.stats' client event with the turn's cumulative values.
+ * Turn identity = bridge turn_id; a new turn resets the accumulator and resolves
+ * the displayed turn ordinal from stored user messages.
+ */
+function recordBridgeLlmStats(
+  sessionId: string,
+  state: SessionState,
+  ev: Record<string, unknown>,
+  emit: (event: string, payload: any) => void,
+): void {
+  const usage = normalizeTokenUsage(ev.usage)
+  if (usage.isEstimated) return
+
+  const turnId = stringValue(ev.turn_id)
+  const apiDuration = Number(ev.api_duration)
+  const startedAt = Number(ev.started_at)
+  const firstChunkAt = ev.first_chunk_at == null ? null : Number(ev.first_chunk_at)
+
+  let s = state.llmStats
+  if (!s || s.turnId !== turnId) {
+    let turnIndex = 0
+    try {
+      const detail = getSessionDetail(sessionId)
+      const messages = detail?.messages
+      if (Array.isArray(messages)) {
+        turnIndex = messages.filter(m => m?.role === 'user').length
+      }
+    } catch {
+      turnIndex = 0
+    }
+    s = {
+      turnId,
+      turnIndex,
+      step: 0,
+      durationSec: 0,
+      ttftSum: 0,
+      ttftCount: 0,
+      inputTokens: 0,
+      outputTokens: 0,
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
+      hasUsage: false,
+    }
+    state.llmStats = s
+  }
+
+  const callCount = Number(ev.api_call_count)
+  s.step = Number.isFinite(callCount) && callCount > s.step ? callCount : s.step + 1
+  if (Number.isFinite(apiDuration) && apiDuration > 0) s.durationSec += apiDuration
+  if (Number.isFinite(startedAt) && firstChunkAt != null && Number.isFinite(firstChunkAt)) {
+    const ttft = firstChunkAt - startedAt
+    if (ttft >= 0 && ttft <= (Number.isFinite(apiDuration) ? apiDuration : 300)) {
+      s.ttftSum += ttft
+      s.ttftCount += 1
+    }
+  }
+  s.inputTokens += usage.inputTokens
+  s.outputTokens += usage.outputTokens
+  s.cacheReadTokens += usage.cacheReadTokens
+  s.cacheWriteTokens += usage.cacheWriteTokens
+  s.hasUsage = true
+
+  const generateSec = s.durationSec - s.ttftSum
+  const tokPerSec = generateSec > 0.001 ? s.outputTokens / generateSec : null
+  const cacheBase = s.cacheReadTokens + s.inputTokens
+  const cacheHitPct = cacheBase > 0 ? (s.cacheReadTokens / cacheBase) * 100 : null
+
+  emit('llm.stats', {
+    event: 'llm.stats',
+    session_id: sessionId,
+    turnIndex: s.turnIndex,
+    step: s.step,
+    durationSec: roundTo1(s.durationSec),
+    ttftAvgSec: s.ttftCount > 0 ? roundTo1(s.ttftSum / s.ttftCount) : null,
+    tokPerSec: tokPerSec == null ? null : Math.round(tokPerSec),
+    cacheHitPct: cacheHitPct == null ? null : Math.round(cacheHitPct),
+    inputTokens: s.inputTokens,
+    outputTokens: s.outputTokens,
+  })
+}
+
 function recordBridgeModelUsage(
   sessionId: string,
   bridgeRunId: string,
@@ -1035,6 +1123,7 @@ async function applyBridgeChunkAsync(
     }
     if (evType === 'model.usage') {
       recordBridgeModelUsage(sessionId, chunk.run_id, ev, profile, modelContext)
+      recordBridgeLlmStats(sessionId, state, ev, emit)
     } else if (evType === 'session.title.updated') {
       syncBridgeGeneratedTitle(sessionId, (ev as any).title, emit)
     } else if (evType === 'bridge.context.ready') {
