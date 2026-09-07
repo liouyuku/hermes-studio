@@ -325,8 +325,11 @@ async function scanSkillsDir(skillsDir: string, bundledManifest: Map<string, str
     const hasSkillMd = await safeReadFile(join(catDir, 'SKILL.md'))
     const subDirs = await listVisibleDirectoryEntries(catDir)
 
-    // Priority: SKILL.md at top level → flat skill
-    //           DESCRIPTION.md or subdirs (without SKILL.md) → category
+    // A directory may be BOTH a flat skill and a category (hybrid): it has its
+    // own SKILL.md AND nested skill directories (e.g. dogfood/). Classify each
+    // aspect independently so nested skills are never hidden:
+    //   - SKILL.md at top level           → flat skill (grouped under misc)
+    //   - DESCRIPTION.md or subdirs       → category (empty ones dropped later)
     if (hasSkillMd) {
       // Flat skill: has SKILL.md at the top level (two-level pattern)
       // Could also have subdirectories (references/, scripts/, etc.)
@@ -335,8 +338,9 @@ async function scanSkillsDir(skillsDir: string, bundledManifest: Map<string, str
         skillMd: hasSkillMd,
         source: getSkillSource(entry.name, bundledManifest, hubNames),
       })
-    } else if (!!hasDesc || subDirs.length > 0) {
-      // True category: has DESCRIPTION.md or subdirs, but no SKILL.md at top level
+    }
+    if (!!hasDesc || subDirs.length > 0) {
+      // True category: has DESCRIPTION.md or subdirs, even if it also carries its own SKILL.md
       const catDescription = hasDesc ? hasDesc.trim().split('\n')[0].replace(/^#+\s*/, '').slice(0, 100) : ''
       categoryDirs.push({ name: entry.name, description: catDescription, path: catDir })
     }
