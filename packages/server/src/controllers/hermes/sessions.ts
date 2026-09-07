@@ -443,6 +443,9 @@ export async function listHermesSessions(ctx: any) {
     if (localSession?.is_archived != null) {
       session.is_archived = localSession.is_archived
     }
+    if (localSession?.llm_stats_json != null) {
+      ;(session as any).llm_stats_json = localSession.llm_stats_json
+    }
   }
 
   for (const session of localSessions) {

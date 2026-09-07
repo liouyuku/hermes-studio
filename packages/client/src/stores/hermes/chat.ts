@@ -590,6 +590,35 @@ function mapHermesSession(s: SessionSummary): Session {
     lastActiveAt: s.last_active != null ? Math.round(s.last_active * 1000) : undefined,
     isArchived: Boolean(s.is_archived),
     workspace: s.workspace || null,
+    ...(parseLlmStatsSnapshot(s.llm_stats_json) || {}),
+  }
+}
+
+/**
+ * Restore the persisted per-turn LLM stats snapshot (from the sessions table
+ * llm_stats_json column) into the live Session shape. Returns undefined when
+ * absent, malformed, or the snapshot predates the current session's content.
+ */
+function parseLlmStatsSnapshot(json: string | null | undefined): Pick<Session, 'llmStats'> | undefined {
+  if (!json) return undefined
+  try {
+    const raw = JSON.parse(json)
+    if (!raw || typeof raw !== 'object') return undefined
+    const num = (v: unknown): number | null =>
+      typeof v === 'number' && Number.isFinite(v) ? v : null
+    const llmStats = {
+      turnIndex: num(raw.turnIndex) ?? 0,
+      step: num(raw.step) ?? 0,
+      durationSec: num(raw.durationSec),
+      ttftAvgSec: num(raw.ttftAvgSec),
+      tokPerSec: num(raw.tokPerSec),
+      cacheHitPct: num(raw.cacheHitPct),
+      inputTokens: num(raw.inputTokens) ?? 0,
+      outputTokens: num(raw.outputTokens) ?? 0,
+    }
+    return { llmStats }
+  } catch {
+    return undefined
   }
 }
 

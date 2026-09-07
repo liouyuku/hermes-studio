@@ -72,6 +72,7 @@ export const SESSIONS_SCHEMA: Record<string, string> = {
   last_active: 'INTEGER NOT NULL',
   is_archived: 'INTEGER NOT NULL DEFAULT 0',
   workspace: 'TEXT',
+  llm_stats_json: 'TEXT',
 }
 
 export const MESSAGES_TABLE = 'messages'

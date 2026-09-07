@@ -572,6 +572,13 @@ export async function handleBridgeRun(
       run_id: started.run_id,
       queue_length: state.queue.length || 0,
     })
+    // New run begins: clear the persisted snapshot of the previous run so a
+    // refresh mid-run shows '-' (no data yet) instead of stale prior-run stats.
+    try {
+      updateSession(session_id, { llm_stats_json: null })
+    } catch (err) {
+      bridgeLogger.warn({ err, sessionId: session_id }, '[chat-run-socket] failed to clear llm stats snapshot')
+    }
 
     let lastChunk: AgentBridgeOutput | null = null
     let sawTerminalChunk = false
@@ -654,6 +661,7 @@ export async function handleBridgeRun(
     state.bridgePendingToolCallMarkup = undefined
     flushBridgePendingToDb(state, session_id)
     updateSessionStats(session_id)
+    persistLlmStatsSnapshot(session_id, state)
     const message = err instanceof Error ? err.message : String(err)
     const errUsage = await calcAndUpdateUsage(session_id, state, emit)
     const errContextTokens = await refreshFinalContextUsage({
@@ -1022,6 +1030,22 @@ function recordBridgeLlmStats(
   emit('llm.stats', {
     event: 'llm.stats',
     session_id: sessionId,
+    ...buildLlmStatsClientPayload(s, { tokPerSec, cacheHitPct }),
+  })
+}
+
+/**
+ * Build the client-facing llm.stats payload shape from the server accumulator.
+ * Shared by the live emit path and run-finalization persistence so the value
+ * shown after a page refresh matches exactly what was streamed live.
+ */
+function buildLlmStatsClientPayload(
+  s: NonNullable<SessionState['llmStats']>,
+  derived?: { tokPerSec: number | null; cacheHitPct: number | null },
+) {
+  const tokPerSec = derived?.tokPerSec
+  const cacheHitPct = derived?.cacheHitPct
+  return {
     turnIndex: s.turnIndex,
     step: s.step,
     durationSec: roundTo1(s.durationSec),
@@ -1030,7 +1054,26 @@ function recordBridgeLlmStats(
     cacheHitPct: cacheHitPct == null ? null : Math.round(cacheHitPct),
     inputTokens: s.inputTokens,
     outputTokens: s.outputTokens,
-  })
+  }
+}
+
+/**
+ * Persist the final llm.stats snapshot of the most recent completed run into
+ * the sessions table (llm_stats_json). The client restores this after a page
+ * refresh; without it the stats row would reset to all '-' because llm.stats
+ * is a live-only event stream with no durable record.
+ */
+function persistLlmStatsSnapshot(sessionId: string, state: SessionState): void {
+  try {
+    const s = state.llmStats
+    const json = s?.hasUsage ? JSON.stringify(buildLlmStatsClientPayload(s)) : null
+    const current = getSession(sessionId)
+    if (current && current.llm_stats_json !== json) {
+      updateSession(sessionId, { llm_stats_json: json })
+    }
+  } catch (err) {
+    bridgeLogger.warn({ err, sessionId }, '[chat-run-socket] failed to persist llm stats snapshot')
+  }
 }
 
 function recordBridgeModelUsage(
@@ -1530,6 +1573,7 @@ async function applyBridgeChunkAsync(
   })
   const hadQueuedRunBeforeGoalEvaluation = state.queue.length > 0
   const eventName = terminalError ? 'run.failed' : 'run.completed'
+  persistLlmStatsSnapshot(sessionId, state)
   let workspaceRunChange: ReturnType<typeof completeWorkspaceRunCheckpoint> = null
   try {
     const change = completeWorkspaceRunCheckpoint({

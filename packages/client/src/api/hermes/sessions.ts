@@ -35,6 +35,8 @@ export interface SessionSummary {
   actual_cost_usd: number | null
   cost_status: string
   workspace?: string | null
+  /** Persisted snapshot of the most recent completed run's LLM stats (JSON string). */
+  llm_stats_json?: string | null
   webui_imported?: boolean
 }
 

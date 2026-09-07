@@ -41,6 +41,7 @@ export interface HermesSessionRow {
   last_active: number
   is_archived: number
   workspace: string | null
+  llm_stats_json: string | null
   parent_title?: string | null
   parent_last_message?: string | null
   parent_last_message_role?: string | null
@@ -128,6 +129,7 @@ function mapSessionRow(row: Record<string, unknown>): HermesSessionRow {
     last_active: Number(row.last_active || 0),
     is_archived: Number(row.is_archived || 0),
     workspace: row.workspace != null ? String(row.workspace) : null,
+    llm_stats_json: row.llm_stats_json != null ? String(row.llm_stats_json) : null,
     parent_title: row.parent_title != null ? String(row.parent_title) : null,
     parent_last_message: row.parent_last_message != null ? String(row.parent_last_message) : null,
     parent_last_message_role: row.parent_last_message_role != null ? String(row.parent_last_message_role) : null,
@@ -188,6 +190,7 @@ export function createSession(data: {
       input_tokens: 0, output_tokens: 0, cache_read_tokens: 0, cache_write_tokens: 0, reasoning_tokens: 0,
       billing_provider: null, estimated_cost_usd: 0, actual_cost_usd: null,
       cost_status: '', preview: '', last_active: now, is_archived: 0, workspace: data.workspace || null,
+      llm_stats_json: null,
     }
   }
   const db = getDb()!
